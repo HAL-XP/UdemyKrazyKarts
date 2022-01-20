@@ -1,0 +1,8 @@
+[SearchableFiles.include]
+*.c*
+*.h*
+[SourceExplorer.ignore]
+*generated*
+*.gen.*
+*.obj*
+*.txt

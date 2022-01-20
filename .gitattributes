@@ -1,0 +1,2 @@
+Content/Vehicle/** filter=lfs diff=lfs merge=lfs -text
+Content/VehicleCPP/Maps/** filter=lfs diff=lfs merge=lfs -text
