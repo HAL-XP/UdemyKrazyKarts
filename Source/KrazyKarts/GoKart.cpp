@@ -53,8 +53,9 @@ FVector AGoKart::GetAirResistance()
 
 void AGoKart::UpdateRotation(float DeltaTime)
 {
-	float RotationAngle = Steering * MaxSteeringDegPerSec * DeltaTime;
-	FQuat RotationDelta(GetActorUpVector(), FMath::DegreesToRadians(RotationAngle));
+	float DeltaLocation = FVector::DotProduct(GetActorForwardVector(), Velocity) * DeltaTime;
+	float RotationAngle = DeltaLocation / MinTurningRadius * Steering;
+	FQuat RotationDelta(GetActorUpVector(), RotationAngle);
 	Velocity = RotationDelta.RotateVector(Velocity);
 	AddActorLocalRotation(RotationDelta, true);
 }

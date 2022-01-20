@@ -35,7 +35,7 @@ private:
 	float MaxDrivingForce = 10000.f; // Newtons // aiming for 10 m/s/s
 
 	UPROPERTY(EditAnywhere)
-	float MaxSteeringDegPerSec = 90.f;
+	float MinTurningRadius = 10.f;
 
 	UPROPERTY(EditAnywhere)
 	float DragCoefficient = 16.f; // kg/m
