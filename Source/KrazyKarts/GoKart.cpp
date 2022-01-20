@@ -14,6 +14,10 @@ AGoKart::AGoKart()
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
 
+	if (HasAuthority())
+	{
+		NetUpdateFrequency = 10;
+	}
 }
 
 // Called when the game starts or when spawned
@@ -26,8 +30,7 @@ void AGoKart::BeginPlay()
 void AGoKart::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(AGoKart, ReplicatedLocation);
-	DOREPLIFETIME(AGoKart, ReplicatedRotation);
+	DOREPLIFETIME(AGoKart, ReplicatedTransform);
 }
 
 FString GetRoleAsString(ENetRole inRole)
@@ -52,28 +55,29 @@ void AGoKart::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	FVector Force = GetActorForwardVector() * MaxDrivingForce * Throttle;
+	Force += GetAirResistance();
+	Force += GetRollingResistance();
+
+	FVector Acceleration = Force / Mass;
+	Velocity += Acceleration * DeltaTime;
+
+	UpdateRotation(DeltaTime);
+	UpdateLocationFromVelocity(DeltaTime);
+
 	if (HasAuthority())
 	{
-		FVector Force = GetActorForwardVector() * MaxDrivingForce * Throttle;
-		Force += GetAirResistance();
-		Force += GetRollingResistance();
 
-		FVector Acceleration = Force / Mass;
-		Velocity += Acceleration * DeltaTime;
-
-		UpdateRotation(DeltaTime);
-		UpdateLocationFromVelocity(DeltaTime);
-
-		ReplicatedLocation = GetActorLocation();
-		ReplicatedRotation = GetActorRotation();
-	}
-	else
-	{
-		SetActorLocation(ReplicatedLocation);
-		SetActorRotation(ReplicatedRotation);
+		ReplicatedTransform = GetActorTransform();
 	}
 
 	DrawDebugString(GetWorld(), FVector(0.f, 0.f, 100.f), GetRoleAsString(GetLocalRole()), this, FColor::White, DeltaTime);
+}
+
+
+void AGoKart::OnRep_ReplicatedTransform()
+{
+	SetActorTransform(ReplicatedTransform);
 }
 
 FVector AGoKart::GetRollingResistance()
