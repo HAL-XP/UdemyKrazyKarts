@@ -16,7 +16,7 @@ AGoKart::AGoKart()
 
 	if (HasAuthority())
 	{
-		NetUpdateFrequency = 10;
+		NetUpdateFrequency = 1;
 	}
 }
 
@@ -31,6 +31,9 @@ void AGoKart::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetim
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AGoKart, ReplicatedTransform);
+	DOREPLIFETIME(AGoKart, Velocity);
+	DOREPLIFETIME(AGoKart, Throttle);
+	DOREPLIFETIME(AGoKart, Steering);
 }
 
 FString GetRoleAsString(ENetRole inRole)

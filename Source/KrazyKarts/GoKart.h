@@ -43,9 +43,13 @@ private:
 	UPROPERTY(EditAnywhere)
 	float RollingResistanceCoefficient = 0.015f;
 
+	UPROPERTY(Replicated)
 	float Throttle{};
+	
+	UPROPERTY(Replicated)
 	float Steering{};
 
+	UPROPERTY(Replicated)
 	FVector Velocity{};
 
 	UPROPERTY(ReplicatedUsing=OnRep_ReplicatedTransform)
