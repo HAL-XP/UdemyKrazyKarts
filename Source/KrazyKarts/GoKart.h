@@ -48,14 +48,25 @@ private:
 
 	FVector Velocity{};
 
+	UPROPERTY(Replicated)
+	FVector ReplicatedLocation;
+
+	UPROPERTY(Replicated)
+	FRotator ReplicatedRotation;
+
 	FVector GetAirResistance();
 	FVector GetRollingResistance();
 	void UpdateLocationFromVelocity(float DeltaTime);
 	void UpdateRotation(float DeltaTime);
+
+	void MoveForward(float Val);
+	void MoveRight(float Val);
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_MoveForward(float Val);
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_MoveRight(float Val);
+
+
 };
