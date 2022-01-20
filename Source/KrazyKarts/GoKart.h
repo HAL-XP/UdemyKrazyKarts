@@ -37,11 +37,19 @@ private:
 	UPROPERTY(EditAnywhere)
 	float MaxSteeringDegPerSec = 90.f;
 
+	UPROPERTY(EditAnywhere)
+	float DragCoefficient = 16.f; // kg/m
+
+	UPROPERTY(EditAnywhere)
+	float RollingResistanceCoefficient = 0.015f;
+
 	float Throttle{};
 	float Steering{};
 
 	FVector Velocity{};
 
+	FVector GetAirResistance();
+	FVector GetRollingResistance();
 	void UpdateLocationFromVelocity(float DeltaTime);
 	void UpdateRotation(float DeltaTime);
 
