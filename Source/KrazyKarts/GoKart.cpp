@@ -2,6 +2,8 @@
 #include "GoKart.h"
 
 #include "Components/InputComponent.h"
+#include "Engine/EngineTypes.h"
+#include "Math/Quat.h"
 
 // Sets default values
 AGoKart::AGoKart()
@@ -23,8 +25,31 @@ void AGoKart::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	FVector Force = GetActorForwardVector() * MaxDrivingForce * Throttle;
+	FVector Acceleration = Force / Mass;
+	Velocity += Acceleration * DeltaTime;
+
+	UpdateRotation(DeltaTime);
+	UpdateLocationFromVelocity(DeltaTime);
+}
+
+void AGoKart::UpdateRotation(float DeltaTime)
+{
+	float RotationAngle = Steering * MaxSteeringDegPerSec * DeltaTime;
+	FQuat RotationDelta(GetActorUpVector(), FMath::DegreesToRadians(RotationAngle));
+	RotationDelta.RotateVector(Velocity);
+	AddActorLocalRotation(RotationDelta, true);
+}
+
+void AGoKart::UpdateLocationFromVelocity(float DeltaTime)
+{
 	FVector DeltaLocation = Velocity * DeltaTime * 100.f;
-	AddActorWorldOffset(DeltaLocation);
+	FHitResult OutSweepHitResult;
+	AddActorWorldOffset(DeltaLocation, true, &OutSweepHitResult);
+	if (OutSweepHitResult.IsValidBlockingHit())
+	{
+		Velocity = FVector::ZeroVector;
+	}
 }
 
 // Called to bind functionality to input
@@ -39,10 +64,10 @@ void AGoKart::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void AGoKart::MoveForward(float Val)
 {
-	Velocity = GetActorForwardVector() * 20.f * Val;
+	Throttle = Val;
 }
 
 void AGoKart::MoveRight(float Val)
 {
-	//GetVehicleMovementComponent()->SetSteeringInput(Val);
+	Steering = Val;
 }
