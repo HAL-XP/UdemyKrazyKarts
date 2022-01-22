@@ -6,6 +6,7 @@
 #include "Math/Quat.h"
 #include "DrawDebugHelpers.h"
 #include "Net/UnrealNetwork.h"
+#include "Algo/RemoveIf.h"
 
 // Sets default values
 AGoKart::AGoKart()
@@ -31,9 +32,6 @@ void AGoKart::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetim
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AGoKart, ServerState);
-	DOREPLIFETIME(AGoKart, Velocity);
-	DOREPLIFETIME(AGoKart, Throttle);
-	DOREPLIFETIME(AGoKart, Steering);
 }
 
 FString GetRoleAsString(ENetRole inRole)
@@ -58,17 +56,23 @@ void AGoKart::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (IsLocallyControlled())
+
+	if (GetLocalRole() == ROLE_AutonomousProxy)
 	{
-		FGoKartMove CurrentMove;
-		CurrentMove.DeltaTime = DeltaTime;
-		CurrentMove.Throttle = Throttle;
-		CurrentMove.Steering = Steering;
-		// TODO CurrentMove.TimeStamp = 
-
-		Server_SendMove(CurrentMove);
-
+		FGoKartMove CurrentMove{ CreateMove(DeltaTime) };
 		SimulateMove(CurrentMove);
+		UnackowledgedMoves.Add(CurrentMove);
+		Server_SendMove(CurrentMove);
+	}
+	else if (GetLocalRole() == ROLE_Authority && GetRemoteRole() == ROLE_SimulatedProxy)
+	{
+		// We are the server and in control of the pawn
+		FGoKartMove CurrentMove{ CreateMove(DeltaTime) };
+		Server_SendMove(CurrentMove);
+	}
+	else if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		SimulateMove(ServerState.LastMove);
 	}
 
 	DrawDebugString(GetWorld(), FVector(0.f, 0.f, 100.f), GetRoleAsString(GetLocalRole()), this, FColor::White, DeltaTime);
@@ -87,10 +91,38 @@ void AGoKart::SimulateMove(const FGoKartMove& Move)
 	UpdateLocationFromVelocity(Move.DeltaTime);
 }
 
+FGoKartMove AGoKart::CreateMove(float DeltaTime)
+{
+	FGoKartMove NewMove;
+	NewMove.DeltaTime = DeltaTime;
+	NewMove.Throttle = Throttle;
+	NewMove.Steering = Steering;
+	NewMove.TimeStamp = GetWorld()->TimeSeconds;
+	
+	return NewMove;
+}
+
+void AGoKart::ClearAknowledgeMoves(const FGoKartMove& inLastMove)
+{
+	//if (!HasAuthority())
+	{
+		UnackowledgedMoves.SetNum(Algo::RemoveIf(UnackowledgedMoves, [&inLastMove](FGoKartMove curMove)
+			{
+				return curMove.TimeStamp <= inLastMove.TimeStamp;
+			}));
+	}
+}
+
 void AGoKart::OnRep_ServerState()
 {
 	SetActorTransform(ServerState.Transform);
 	Velocity = ServerState.Velocity;
+	ClearAknowledgeMoves(ServerState.LastMove);
+
+	for (const FGoKartMove& CurMove : UnackowledgedMoves)
+	{
+		SimulateMove(CurMove);
+	}
 }
 
 FVector AGoKart::GetRollingResistance()
@@ -148,12 +180,12 @@ void AGoKart::MoveRight(float Val)
 	Steering = Val;
 }
 
-bool AGoKart::Server_SendMove_Validate(FGoKartMove Move)
+bool AGoKart::Server_SendMove_Validate(const FGoKartMove& Move)
 {
 	return true;// FMath::Abs(Val) <= 1.0f;
 }
 
-void AGoKart::Server_SendMove_Implementation(FGoKartMove Move)
+void AGoKart::Server_SendMove_Implementation(const FGoKartMove& Move)
 {
 	SimulateMove(Move);
 	ServerState.LastMove	= Move;

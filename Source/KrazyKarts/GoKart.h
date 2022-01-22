@@ -77,6 +77,8 @@ private:
 	float Steering{};
 	FVector Velocity{};
 
+	TArray<FGoKartMove> UnackowledgedMoves;
+
 	UPROPERTY(ReplicatedUsing=OnRep_ServerState)
 	FGoKartMoveState ServerState;
 	UFUNCTION()
@@ -91,7 +93,9 @@ private:
 	void MoveRight(float Val);
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_SendMove(FGoKartMove Move);
+	void Server_SendMove(const FGoKartMove& Move);
 
 	void SimulateMove(const FGoKartMove& Move);
+	FGoKartMove CreateMove(float DeltaTime);
+	void ClearAknowledgeMoves(const FGoKartMove& inLastMove);
 };
